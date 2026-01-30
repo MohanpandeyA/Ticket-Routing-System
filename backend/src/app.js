@@ -1,4 +1,6 @@
 import dotenv from "dotenv";
+import authRoutes from "./routes/authRoutes.js";
+
 dotenv.config(); // 🔥 MUST be first
 
 import express from "express";
@@ -10,6 +12,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.use("/api/auth", authRoutes);
 app.use("/api/tickets", ticketRoutes);
+
 
 export default app;

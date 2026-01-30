@@ -7,7 +7,7 @@ import { classifyTicket } from "../services/openaiService.js";
 // - Pure business logic
 // - No DB access
 // - Easy to test
-function assignQueue(category){
+function assignQueue(category) {
   if (category === "billing") return "Finance Support";
   if (category === "technical") return "Tech Support";
   if (category === "account") return "Account Support";
@@ -18,6 +18,45 @@ function assignQueue(category){
 export const createTicket = async (req, res) => {
   try {
     const { title, description } = req.body;
+
+    // 1️⃣ Basic checks
+    if (!title || !description) {
+      return res.status(400).json({ error: "Title and description are required" });
+    }
+
+    // Normalize input
+    const cleanTitle = title.trim().toLowerCase();
+    const cleanDesc = description.trim().toLowerCase();
+
+    // 2️⃣ Length checks
+    if (cleanTitle.length < 5 || cleanDesc.length < 15) {
+      return res.status(400).json({
+        error: "Title or description is too short"
+      });
+    }
+
+    // 3️⃣ Block random repeated characters (aaaa, ddcafafafa)
+    const repeatedPattern = /(.)\1{3,}/; // same char 4+ times
+    if (repeatedPattern.test(cleanTitle) || repeatedPattern.test(cleanDesc)) {
+      return res.status(400).json({
+        error: "Input looks invalid or repetitive"
+      });
+    }
+
+    // 4️⃣ Require real words (at least one space = multiple words)
+    if (!cleanDesc.includes(" ")) {
+      return res.status(400).json({
+        error: "Description must contain multiple words"
+      });
+    }
+
+    // 5️⃣ Require vowels + consonants (blocks 'asdfgh')
+    const wordPattern = /[aeiou]/i;
+    if (!wordPattern.test(cleanTitle) || !wordPattern.test(cleanDesc)) {
+      return res.status(400).json({
+        error: "Input does not look meaningful"
+      });
+    }
 
     // 1️⃣ Save raw ticket (never fail core data)
     const ticket = await Ticket.create({ title, description });

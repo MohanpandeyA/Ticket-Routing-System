@@ -1,8 +1,17 @@
 import dotenv from "dotenv";
-dotenv.config();   // 👈 MUST be first
+dotenv.config({ path: "./.env" });
+
+console.log(
+  "Gemini key loaded:",
+  Boolean(process.env.GEMINI_API_KEY)
+);
+
 
 import app from "./src/app.js";
 import connectDB from "./src/config/db.js";
+
+console.log("Gemini key loaded:", process.env.GEMINI_API_KEY?.length > 0);
+
 
 connectDB();
 

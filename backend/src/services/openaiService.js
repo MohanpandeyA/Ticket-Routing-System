@@ -1,70 +1,22 @@
-// Rule-based ticket classification
-// This acts as an AI fallback and AI-ready interface
+import { classifyTicketWithGemini } from "./geminiService.js";
 
-export async function classifyTicket(title, description) {
+export const classifyTicket = async (title, description) => {
+  // 1️⃣ Try Gemini
+  const aiResult = await classifyTicketWithGemini(title, description);
+  if (aiResult) return aiResult;
+
+  // 2️⃣ Fallback rule-based logic
   const text = `${title} ${description}`.toLowerCase();
 
-  // ---------- KEYWORD MAP ----------
-  const rules = {
-    billing: [
-      "payment",
-      "billing",
-      "refund",
-      "invoice",
-      "charged",
-      "money",
-      "transaction"
-    ],
-    technical: [
-      "crash",
-      "error",
-      "bug",
-      "issue",
-      "not working",
-      "fail",
-      "broken",
-      "problem"
-    ],
-    account: [
-      "login",
-      "signup",
-      "account",
-      "password",
-      "username",
-      "profile",
-      "access"
-    ]
-  };
-
-  // ---------- SCORING ----------
-  const scores = {
-    billing: 0,
-    technical: 0,
-    account: 0
-  };
-
-  for (const category in rules) {
-    for (const keyword of rules[category]) {
-      if (text.includes(keyword)) {
-        scores[category]++;
-      }
-    }
+  if (text.includes("payment") || text.includes("billing")) {
+    return { category: "billing", priority: "high" };
+  }
+  if (text.includes("crash") || text.includes("error")) {
+    return { category: "technical", priority: "medium" };
+  }
+  if (text.includes("account") || text.includes("login")) {
+    return { category: "account", priority: "medium" };
   }
 
-  // ---------- DECISION ----------
-  let category = "general";
-  let priority = "low";
-
-  if (scores.billing > 0) {
-    category = "billing";
-    priority = "high";
-  } else if (scores.technical > 0) {
-    category = "technical";
-    priority = "medium";
-  } else if (scores.account > 0) {
-    category = "account";
-    priority = "medium";
-  }
-
-  return { category, priority };
-}
+  return { category: "general", priority: "low" };
+};
