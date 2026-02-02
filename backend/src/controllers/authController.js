@@ -9,9 +9,8 @@ import jwt from "jsonwebtoken";
  */
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, adminCode } = req.body;
 
-    // Basic validation
     if (!name || !email || !password) {
       return res.status(400).json({ error: "All fields are required" });
     }
@@ -22,31 +21,53 @@ export const registerUser = async (req, res) => {
         .json({ error: "Password must be at least 6 characters" });
     }
 
-    // Check if user already exists
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ error: "User already exists" });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    // ✅ Decide role safely
+    let finalRole = "user";
 
-    // Create user
+    if (req.body.role === "admin") {
+      if (adminCode !== process.env.ADMIN_REGISTER_CODE) {
+        return res.status(403).json({
+          error: "Invalid admin registration code",
+        });
+      }
+      finalRole = "admin";
+    }
+
+    // Password hashing handled by pre-save hook
     const user = await User.create({
       name,
       email,
-      password: hashedPassword
+      password,
+      role: finalRole,
     });
 
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
     res.status(201).json({
-      message: "User registered successfully"
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Registration failed" });
   }
 };
+
 
 /**
  * @desc    Login user
@@ -61,19 +82,18 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ error: "All fields are required" });
     }
 
-    // Find user
-    const user = await User.findOne({ email });
+    // 🔥 MUST SELECT PASSWORD
+    const user = await User.findOne({ email }).select("+password");
+
     if (!user) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // Generate JWT
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
@@ -81,6 +101,7 @@ export const loginUser = async (req, res) => {
     );
 
     res.json({
+      success: true,
       token,
       user: {
         id: user._id,

@@ -1,11 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config({ path: "./.env" });
 
-console.log(
-  "Gemini key loaded:",
-  Boolean(process.env.GEMINI_API_KEY)
-);
-
 
 import app from "./src/app.js";
 import connectDB from "./src/config/db.js";

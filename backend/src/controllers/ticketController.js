@@ -1,7 +1,7 @@
 import Ticket from "../models/Ticket.js";
 import Metric from "../models/Metric.js";
 import { classifyTicket } from "../services/openaiService.js";
-
+import { validateTicketInput } from "../utils/validateTicket.js";
 /* ---------------- HELPER FUNCTION ---------------- */
 // WHY here?
 // - Pure business logic
@@ -20,8 +20,9 @@ export const createTicket = async (req, res) => {
     const { title, description } = req.body;
 
     // 1️⃣ Basic checks
-    if (!title || !description) {
-      return res.status(400).json({ error: "Title and description are required" });
+    const error = validateTicketInput(title, description);
+    if (error) {
+      return res.status(400).json({ error });
     }
 
     // Normalize input
@@ -59,7 +60,13 @@ export const createTicket = async (req, res) => {
     }
 
     // 1️⃣ Save raw ticket (never fail core data)
-    const ticket = await Ticket.create({ title, description });
+    // 1️⃣ Save raw ticket (never fail core data)
+    const ticket = await Ticket.create({
+      title,
+      description,
+      user: req.user.id // 🔥 IMPORTANT
+    });
+
 
     // 2️⃣ AI classification
     const { category, priority } =
@@ -84,8 +91,13 @@ export const createTicket = async (req, res) => {
     res.status(201).json(ticket);
 
   } catch (err) {
-    res.status(500).json({ error: "Ticket processing failed" });
+    console.error("❌ Ticket creation error:", err);
+    res.status(500).json({
+      error: "Ticket processing failed",
+      details: err.message,
+    });
   }
+
 };
 // ---------------- METRICS CONTROLLER ----------------
 // WHY:
@@ -131,4 +143,77 @@ export const getTicketsByQueue = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch queue tickets" });
   }
 };
+
+/**
+ * @desc    Get logged-in user's tickets
+ * @route   GET /api/tickets/my
+ * @access  Authenticated User
+ */
+export const getMyTickets = async (req, res) => {
+  try {
+    const tickets = await Ticket.find({ user: req.user.id })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(tickets);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch user tickets" });
+  }
+};
+/**
+ * @desc    Delete a ticket (only owner)
+ * @route   DELETE /api/tickets/:id
+ * @access  Authenticated User
+ */
+export const deleteTicket = async (req, res) => {
+  try {
+    const ticket = await Ticket.findById(req.params.id);
+
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket not found" });
+    }
+
+    // 🔐 Ensure user owns the ticket
+    if (ticket.user.toString() !== req.user.id) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    await ticket.deleteOne();
+    res.json({ message: "Ticket deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete ticket" });
+  }
+};
+/**
+ * @desc    Update ticket status
+ * @route   PATCH /api/tickets/:id/status
+ * @access  Authenticated User (owner)
+ */
+export const updateTicketStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!["open", "resolved"].includes(status)) {
+      return res.status(400).json({ error: "Invalid status" });
+    }
+
+    const ticket = await Ticket.findById(req.params.id);
+
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket not found" });
+    }
+
+    // 🔐 Only ticket owner can update
+    if (ticket.user.toString() !== req.user.id) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    ticket.status = status;
+    await ticket.save();
+
+    res.json(ticket);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update ticket status" });
+  }
+};
+
 

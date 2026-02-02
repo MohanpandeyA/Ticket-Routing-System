@@ -3,9 +3,12 @@ import {
   createTicket,
   getMetrics,
   getAllTickets,
-  getTicketsByQueue
+  getTicketsByQueue,
+  getMyTickets
 } from "../controllers/ticketController.js";
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
+import { deleteTicket } from "../controllers/ticketController.js";
+import { updateTicketStatus } from "../controllers/ticketController.js";
 
 const router = express.Router();
 
@@ -15,6 +18,9 @@ const router = express.Router();
  * @access  Authenticated User
  */
 router.post("/", protect, createTicket);
+router.get("/my", protect, getMyTickets);
+router.delete("/:id", protect, deleteTicket);
+router.patch("/:id/status", protect, updateTicketStatus);
 
 /**
  * @route   GET /api/tickets
@@ -36,5 +42,6 @@ router.get("/queue", protect, adminOnly, getTicketsByQueue);
  * @access  Admin only
  */
 router.get("/metrics", protect, adminOnly, getMetrics);
+
 
 export default router;

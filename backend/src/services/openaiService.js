@@ -1,21 +1,44 @@
 import { classifyTicketWithGemini } from "./geminiService.js";
 
 export const classifyTicket = async (title, description) => {
-  // 1️⃣ Try Gemini
-  const aiResult = await classifyTicketWithGemini(title, description);
-  if (aiResult) return aiResult;
+  let aiResult = null;
 
-  // 2️⃣ Fallback rule-based logic
+  try {
+    aiResult = await classifyTicketWithGemini(title, description);
+  } catch (err) {
+    console.error("❌ Gemini call failed:", err.message);
+  }
+
   const text = `${title} ${description}`.toLowerCase();
 
-  if (text.includes("payment") || text.includes("billing")) {
+  // 🔒 HARD BUSINESS RULES (OVERRIDE AI)
+  if (
+    text.includes("payment") ||
+    text.includes("billing") ||
+    text.includes("checkout")
+  ) {
     return { category: "billing", priority: "high" };
   }
-  if (text.includes("crash") || text.includes("error")) {
+
+  if (
+    text.includes("error") ||
+    text.includes("crash") ||
+    text.includes("failed")
+  ) {
     return { category: "technical", priority: "medium" };
   }
-  if (text.includes("account") || text.includes("login")) {
+
+  if (
+    text.includes("login") ||
+    text.includes("password") ||
+    text.includes("account")
+  ) {
     return { category: "account", priority: "medium" };
+  }
+
+  // ✅ Use AI result only if valid
+  if (aiResult?.category && aiResult?.priority) {
+    return aiResult;
   }
 
   return { category: "general", priority: "low" };

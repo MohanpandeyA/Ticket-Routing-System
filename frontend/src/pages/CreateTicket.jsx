@@ -4,119 +4,130 @@ import axios from "axios";
 
 const { TextArea } = Input;
 
-function CreateTicket() {
-    const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState(null);
+function CreateTicket({ onSuccess }) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
 
-    // ✅ REQUIRED for resetFields()
-    const [form] = Form.useForm();
+  // ✅ REQUIRED for resetFields()
+  const [form] = Form.useForm();
 
-    const submitTicket = async (values) => {
-        try {
-            setLoading(true);
+  const submitTicket = async (values) => {
+    try {
+      setLoading(true);
 
-            const res = await axios.post(
-                "http://localhost:5000/api/tickets",
-                values
-            );
+      const token = localStorage.getItem("token");
 
-            setResult(res.data);
-            form.resetFields(); // ✅ clears inputs
-            message.success("Ticket submitted successfully");
-        } catch (err) {
-            message.error("Failed to submit ticket");
-        } finally {
-            setLoading(false);
+      const res = await axios.post(
+        "http://localhost:5000/api/tickets",
+        values,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-    };
+      );
 
-    return (
-        <Card
-            title="Create Support Ticket"
-            style={{
-                width: 520,
-                borderRadius: 12,
-                boxShadow: "0 12px 40px rgba(0,0,0,0.3)"
-            }}
+      setResult(res.data);
+      form.resetFields(); // ✅ clears inputs
+      message.success("Ticket submitted successfully");
+
+      // ✅ VERY IMPORTANT: refresh stats + ticket list
+      if (onSuccess) {
+        onSuccess();
+      }
+
+    } catch (err) {
+      message.error("Failed to submit ticket");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card
+      title="Create Support Ticket"
+      style={{
+        width: 520,
+        borderRadius: 12,
+        boxShadow: "0 12px 40px rgba(0,0,0,0.3)",
+      }}
+    >
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={submitTicket}
+      >
+        <Form.Item
+          label="Title"
+          name="title"
+          rules={[
+            { required: true, message: "Please enter title" },
+            { min: 5, message: "Title must be at least 5 characters" },
+            {
+              validator: (_, value) =>
+                value && value.trim().length >= 5
+                  ? Promise.resolve()
+                  : Promise.reject("Title cannot be empty or random"),
+            },
+          ]}
         >
-            <Form
-                form={form}               // ✅ attach form instance
-                layout="vertical"
-                onFinish={submitTicket}
+          <Input placeholder="Issue title" />
+        </Form.Item>
+
+        <Form.Item
+          label="Description"
+          name="description"
+          rules={[
+            { required: true, message: "Please enter description" },
+            { min: 15, message: "Description must be at least 15 characters" },
+            {
+              validator: (_, value) =>
+                value && value.trim().length >= 15
+                  ? Promise.resolve()
+                  : Promise.reject("Description is too short or meaningless"),
+            },
+          ]}
+        >
+          <TextArea rows={4} placeholder="Describe the issue" />
+        </Form.Item>
+
+        <Button type="primary" htmlType="submit" loading={loading} block>
+          Submit Ticket
+        </Button>
+      </Form>
+
+      {result && (
+        <Card style={{ marginTop: 24 }} type="inner" title="Assigned Details">
+          <Divider />
+
+          <p>
+            <b>Category:</b>{" "}
+            <Tag color="blue">{result.category}</Tag>
+          </p>
+
+          <p>
+            <b>Priority:</b>{" "}
+            <Tag
+              color={
+                result.priority === "high"
+                  ? "red"
+                  : result.priority === "medium"
+                  ? "orange"
+                  : "green"
+              }
             >
-                <Form.Item
-                    label="Title"
-                    name="title"
-                    rules={[
-                        { required: true, message: "Please enter title" },
-                        { min: 5, message: "Title must be at least 5 characters" },
-                        {
-                            validator: (_, value) =>
-                                value && value.trim().length >= 5
-                                    ? Promise.resolve()
-                                    : Promise.reject("Title cannot be empty or random")
-                        }
-                    ]}
-                >
+              {result.priority}
+            </Tag>
+          </p>
 
-                    <Input placeholder="Issue title" />
-                </Form.Item>
-
-                <Form.Item
-                    label="Description"
-                    name="description"
-                    rules={[
-                        { required: true, message: "Please enter description" },
-                        { min: 15, message: "Description must be at least 15 characters" },
-                        {
-                            validator: (_, value) =>
-                                value && value.trim().length >= 15
-                                    ? Promise.resolve()
-                                    : Promise.reject("Description is too short or meaningless")
-                        }
-                    ]}
-                >
-
-                    <TextArea rows={4} placeholder="Describe the issue" />
-                </Form.Item>
-
-                <Button type="primary" htmlType="submit" loading={loading} block>
-                    Submit Ticket
-                </Button>
-            </Form>
-
-            {result && (
-                <Card style={{ marginTop: 24 }} type="inner" title="Assigned Details">
-                    <Divider />
-
-                    <p>
-                        <b>Category:</b>{" "}
-                        <Tag color="blue">{result.category}</Tag>
-                    </p>
-
-                    <p>
-                        <b>Priority:</b>{" "}
-                        <Tag
-                            color={
-                                result.priority === "high"
-                                    ? "red"
-                                    : result.priority === "medium"
-                                        ? "orange"
-                                        : "green"
-                            }
-                        >
-                            {result.priority}
-                        </Tag>
-                    </p>
-
-                    <p>
-                        <b>Queue:</b>{" "}
-                        <Tag color="purple">{result.assignedQueue}</Tag>
-                    </p>
-                </Card>
-            )}
+          <p>
+            <b>Queue:</b>{" "}
+            <Tag color="purple">{result.assignedQueue}</Tag>
+          </p>
         </Card>
-    );
+      )}
+    </Card>
+  );
 }
 
 export default CreateTicket;
