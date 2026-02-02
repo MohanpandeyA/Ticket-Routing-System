@@ -9,6 +9,7 @@ import {
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
 import { deleteTicket } from "../controllers/ticketController.js";
 import { updateTicketStatus } from "../controllers/ticketController.js";
+import { addComment, getTicketById } from "../controllers/ticketController.js";
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ router.post("/", protect, createTicket);
 router.get("/my", protect, getMyTickets);
 router.delete("/:id", protect, deleteTicket);
 router.patch("/:id/status", protect, updateTicketStatus);
+router.post("/:id/comment", protect, addComment);
 
 /**
  * @route   GET /api/tickets

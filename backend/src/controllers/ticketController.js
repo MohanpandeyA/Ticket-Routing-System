@@ -118,14 +118,25 @@ export const getMetrics = async (req, res) => {
 // - Sorted by newest first
 export const getAllTickets = async (req, res) => {
   try {
-    const tickets = await Ticket.find({})
-      .sort({ createdAt: -1 });
+    const { status, priority, search } = req.query;
 
-    res.status(200).json(tickets);
+    let query = {};
+
+    if (status) query.status = status;
+    if (priority) query.priority = priority;
+
+    if (search) {
+      query.title = { $regex: search, $options: "i" };
+    }
+
+    const tickets = await Ticket.find(query).sort({ createdAt: -1 });
+    res.json(tickets);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch tickets" });
   }
 };
+
+
 
 // ---------------- ADMIN: GET TICKETS BY QUEUE ----------------
 // WHY:
@@ -213,6 +224,51 @@ export const updateTicketStatus = async (req, res) => {
     res.json(ticket);
   } catch (err) {
     res.status(500).json({ error: "Failed to update ticket status" });
+  }
+};
+export const addComment = async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    if (!text || text.trim().length < 2) {
+      return res.status(400).json({ error: "Comment too short" });
+    }
+
+    const ticket = await Ticket.findById(req.params.id);
+
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket not found" });
+    }
+
+    const newComment = {
+      text: text.trim(),
+      user: req.user.id,
+      role: req.user.role,
+    };
+
+    ticket.comments.push(newComment);
+    await ticket.save();
+
+    res.status(201).json(ticket.comments);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to add comment" });
+  }
+};
+
+// ---------------- GET SINGLE TICKET ----------------
+export const getTicketById = async (req, res) => {
+  try {
+    const ticket = await Ticket.findById(req.params.id)
+      .populate("user", "name email")
+      .populate("comments.user", "name role");
+
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket not found" });
+    }
+
+    res.json(ticket);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch ticket" });
   }
 };
 

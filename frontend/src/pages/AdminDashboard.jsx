@@ -1,27 +1,48 @@
 import { useEffect, useState } from "react";
 import { Tag, Spin, message, Button } from "antd";
+import { useNavigate } from "react-router-dom";
 
 function AdminDashboard() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    status: "",
+    priority: "",
+    search: ""
+  });
+
+  const navigate = useNavigate(); // 🔥 MUST BE HERE
   const token = localStorage.getItem("token");
 
   const fetchAllTickets = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/tickets", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const params = new URLSearchParams();
+
+      if (filters.status) params.append("status", filters.status);
+      if (filters.priority) params.append("priority", filters.priority);
+      if (filters.search) params.append("search", filters.search);
+
+      const res = await fetch(
+        `http://localhost:5000/api/tickets?${params.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       const data = await res.json();
       setTickets(data);
-    } catch {
-      message.error("Failed to load tickets");
+    } catch (err) {
+      console.error("Admin fetch failed:", err);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchAllTickets();
+  }, []);
 
   const markResolved = async (id) => {
     try {
@@ -49,6 +70,13 @@ function AdminDashboard() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
+  // 🔥 Conditional return AFTER hooks
   if (loading) {
     return (
       <div style={{ textAlign: "center", marginTop: 80 }}>
@@ -59,8 +87,64 @@ function AdminDashboard() {
 
   return (
     <div style={{ maxWidth: 1200, margin: "40px auto" }}>
-      <h2>Admin Dashboard</h2>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <h2>Admin Dashboard</h2>
 
+        <Button danger onClick={handleLogout}>
+          Logout
+        </Button>
+      </div>
+
+      {/* FILTER BAR */}
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          marginBottom: 20,
+          flexWrap: "wrap",
+        }}
+      >
+        <select
+          onChange={(e) =>
+            setFilters((f) => ({ ...f, status: e.target.value }))
+          }
+        >
+          <option value="">All Status</option>
+          <option value="open">Open</option>
+          <option value="resolved">Resolved</option>
+        </select>
+
+        <select
+          onChange={(e) =>
+            setFilters((f) => ({ ...f, priority: e.target.value }))
+          }
+        >
+          <option value="">All Priority</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+
+        <input
+          placeholder="Search title..."
+          style={{ padding: 6 }}
+          onChange={(e) =>
+            setFilters((f) => ({ ...f, search: e.target.value }))
+          }
+        />
+
+        <Button type="primary" onClick={fetchAllTickets}>
+          Apply
+        </Button>
+      </div>
+
+      {/* TICKETS GRID */}
       <div
         style={{
           display: "grid",
