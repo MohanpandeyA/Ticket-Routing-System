@@ -7,8 +7,7 @@ Users can raise tickets, and Admins can manage and resolve them via dashboards.
 
 ## 🚀 Live Links
 
-Frontend: https://your-frontend.vercel.app  
-Backend API: https://ticket-routing-system-backend.onrender.com
+https://ticket-routing-system-frontend.onrender.com/login
 
 ---
 
