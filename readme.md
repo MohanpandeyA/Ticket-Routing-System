@@ -61,29 +61,7 @@ https://ticket-routing-system-frontend.onrender.com/login
 
 ## 📁 Folder Structure
 
-Ticket-Routing-System
-│
-├── backend
-│ ├── src
-│ │ ├── config
-│ │ ├── controllers
-│ │ ├── middleware
-│ │ ├── models
-│ │ ├── routes
-│ │ ├── services
-│ │ └── utils
-│ └── server.js
-│
-├── frontend
-│ ├── src
-│ │ ├── components
-│ │ ├── pages
-│ │ ├── App.jsx
-│ │ └── main.jsx
-│
-└── README.md
 
----
 
 ## 🔐 Authentication Flow
 
