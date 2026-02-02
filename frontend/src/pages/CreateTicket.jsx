@@ -3,12 +3,12 @@ import { useState } from "react";
 import axios from "axios";
 
 const { TextArea } = Input;
+const API_URL = "https://ticket-routing-system-backend.onrender.com";
 
 function CreateTicket({ onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
 
-  // ✅ REQUIRED for resetFields()
   const [form] = Form.useForm();
 
   const submitTicket = async (values) => {
@@ -18,7 +18,7 @@ function CreateTicket({ onSuccess }) {
       const token = localStorage.getItem("token");
 
       const res = await axios.post(
-        "http://localhost:5000/api/tickets",
+        `${API_URL}/api/tickets`,   // 🔥 FIXED
         values,
         {
           headers: {
@@ -28,15 +28,15 @@ function CreateTicket({ onSuccess }) {
       );
 
       setResult(res.data);
-      form.resetFields(); // ✅ clears inputs
+      form.resetFields();
       message.success("Ticket submitted successfully");
 
-      // ✅ VERY IMPORTANT: refresh stats + ticket list
       if (onSuccess) {
         onSuccess();
       }
 
     } catch (err) {
+      console.error(err);
       message.error("Failed to submit ticket");
     } finally {
       setLoading(false);
@@ -52,23 +52,13 @@ function CreateTicket({ onSuccess }) {
         boxShadow: "0 12px 40px rgba(0,0,0,0.3)",
       }}
     >
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={submitTicket}
-      >
+      <Form form={form} layout="vertical" onFinish={submitTicket}>
         <Form.Item
           label="Title"
           name="title"
           rules={[
             { required: true, message: "Please enter title" },
             { min: 5, message: "Title must be at least 5 characters" },
-            {
-              validator: (_, value) =>
-                value && value.trim().length >= 5
-                  ? Promise.resolve()
-                  : Promise.reject("Title cannot be empty or random"),
-            },
           ]}
         >
           <Input placeholder="Issue title" />
@@ -80,12 +70,6 @@ function CreateTicket({ onSuccess }) {
           rules={[
             { required: true, message: "Please enter description" },
             { min: 15, message: "Description must be at least 15 characters" },
-            {
-              validator: (_, value) =>
-                value && value.trim().length >= 15
-                  ? Promise.resolve()
-                  : Promise.reject("Description is too short or meaningless"),
-            },
           ]}
         >
           <TextArea rows={4} placeholder="Describe the issue" />

@@ -2,25 +2,27 @@ import { Form, Input, Button, Card, message } from "antd";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+const API_URL = "https://ticket-routing-system-backend.onrender.com";
+
 function Login() {
   const navigate = useNavigate();
 
   const onFinish = async (values) => {
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        `${API_URL}/api/auth/login`,   // 🔥 FIXED
         values
       );
 
       const { token, user } = res.data;
 
-      // 🔐 Save auth data
+      // Save auth data
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
       message.success("Login successful");
 
-      // 🚦 Role-based redirect
+      // Role redirect
       if (user.role === "admin") {
         navigate("/admin/dashboard");
       } else {

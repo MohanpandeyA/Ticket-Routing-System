@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Tag, Spin, message, Button } from "antd";
 import { useNavigate } from "react-router-dom";
 
+const API_URL = "https://ticket-routing-system-backend.onrender.com";
+
 function AdminDashboard() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,7 +13,7 @@ function AdminDashboard() {
     search: ""
   });
 
-  const navigate = useNavigate(); // 🔥 MUST BE HERE
+  const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
   const fetchAllTickets = async () => {
@@ -23,7 +25,7 @@ function AdminDashboard() {
       if (filters.search) params.append("search", filters.search);
 
       const res = await fetch(
-        `http://localhost:5000/api/tickets?${params.toString()}`,
+        `${API_URL}/api/tickets?${params.toString()}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -47,7 +49,7 @@ function AdminDashboard() {
   const markResolved = async (id) => {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/tickets/${id}/status`,
+        `${API_URL}/api/tickets/${id}/status`,
         {
           method: "PATCH",
           headers: {
@@ -76,7 +78,6 @@ function AdminDashboard() {
     navigate("/login");
   };
 
-  // 🔥 Conditional return AFTER hooks
   if (loading) {
     return (
       <div style={{ textAlign: "center", marginTop: 80 }}>
@@ -144,7 +145,7 @@ function AdminDashboard() {
         </Button>
       </div>
 
-      {/* TICKETS GRID */}
+      {/* GRID */}
       <div
         style={{
           display: "grid",

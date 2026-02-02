@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const { Option } = Select;
+const API_URL = "https://ticket-routing-system-backend.onrender.com";
 
 function Register() {
   const [loading, setLoading] = useState(false);
@@ -14,7 +15,10 @@ function Register() {
     try {
       setLoading(true);
 
-      await axios.post("http://localhost:5000/api/auth/register", values);
+      await axios.post(
+        `${API_URL}/api/auth/register`,   // 🔥 FIXED
+        values
+      );
 
       message.success("Registration successful. Please login.");
       navigate("/login");
